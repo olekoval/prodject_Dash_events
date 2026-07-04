@@ -1,0 +1,28 @@
+# Environment variables & secrets
+.env
+
+# Data & Databases (DuckDB / Local Parquet)
+*.duckdb
+*.duckdb.wal
+*.parquet
+
+# Project folders
+events/
+
+# Python & Poetry artifacts
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Notebooks & documentation tools
+.ipynb_checkpoints
+.obsidian/
+
+# Windows OS specifics
+Thumbs.db
+Desktop.ini
+
+# IDEs
+.vscode/
+.idea/
