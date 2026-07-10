@@ -4,6 +4,10 @@ from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from dotenv import load_dotenv
 
+"""
+Скрипт для завантаження файлів *.parque у платформу Cloudflare R2 
+"""
+
 # Завантажуємо змінні з файлу .env
 load_dotenv()
 
