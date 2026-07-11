@@ -7,7 +7,7 @@
 *.parquet
 
 # Project folders
-events/
+treatments/
 
 # Python & Poetry artifacts
 __pycache__/

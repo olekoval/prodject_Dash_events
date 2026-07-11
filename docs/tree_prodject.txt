@@ -1,0 +1,15 @@
+prodject/
+├──   .env
+├──   .gitignore
+├──   poetry.lock
+├──   pyproject.toml
+├──   README.md
+│
+│
+├── app.py
+└── pages/
+│  	└── home.py
+├── data/
+│     └── agg_treatments.parquet	← вже агреговані дані (маленький файл)
+├── etl/
+       └── build_aggregates.py	← окремий скрипт, що читає S3 і пише data/agg_*.parquet

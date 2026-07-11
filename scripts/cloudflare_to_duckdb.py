@@ -29,13 +29,17 @@ con.execute(f"""
 
 
 query = f"""
-   SELECT *
-     FROM read_parquet('s3://{BUCKET_NAME}/events/**/*.parquet')
-   WHERE month = '01'
-   LIMIT 10
+   SELECT service_number,
+          COUNT(DISTINCT patient_id) AS un_patient_id,
+          SUM(count_service) AS count_service
+     FROM read_parquet('s3://{BUCKET_NAME}/treatments/**/*.parquet')
+   WHERE year = '2025'
+    AND service = 'C'
+ GROUP BY service_number
+ ORDER BY un_patient_id
 """
 
 df = con.execute(query).df()
-print(df.loc[0, 'actions'])
+print(df)
 
 con.close()

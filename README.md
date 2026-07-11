@@ -6,7 +6,7 @@
 
 |Папки|Опис|
 |-|-|
-|events|Папка з файлами даних \*.parquet|
+||Папка з файлами даних \*.parquet|
 |scripts|Папка з скриптами pyton підготовки даних та переміщеня на платформу Cloudflare R2|
 
 
@@ -17,8 +17,8 @@
 
 |Файл|Опис|
 |-|-|
-|scriots\\upload\_to\_r2.py|Файл для завантаження \*.parquet на платформу Cloudflare R2|
-|scriots\\cloudflare\_to\_duckdb.py|Файл для тестування роботи duckdb з cloudflare R2|
+|scripts\\download\_data\_treatment.py|Скрипт для завантаження даних з DWH|
+|scripts\\cloudflare\_to\_duckdb.py|Скрипт для тестування роботи duckdb з cloudflare R2|
 
 
 
