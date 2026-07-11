@@ -4,10 +4,6 @@
 # Data & Databases (DuckDB / Local Parquet)
 *.duckdb
 *.duckdb.wal
-*.parquet
-
-# Project folders
-treatments/
 
 # Python & Poetry artifacts
 __pycache__/

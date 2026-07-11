@@ -16,23 +16,25 @@ engine = create_engine(db_url)
 query = """
 WITH t_25 AS (
     SELECT 
-        '2025' AS year,
-        LEFT(code, 1) AS first_letter_code,
-        COUNT(DISTINCT patient_id) AS count_un_patient,
-        COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
+          '2025' AS year,
+          LEFT(service_number, 1) AS first_letter_code,
+          COUNT(DISTINCT patient_id) AS count_un_patient,
+          COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
     FROM analytics.rds_smd_patient_treatments_2025
-    WHERE packet_number = '9'
-    GROUP BY LEFT(code, 1)
+   WHERE packet_number = '9'
+     AND is_correct
+    GROUP BY LEFT(service_number, 1)
 ),
 t_26 AS (
     SELECT 
-        '2026' AS year,
-        LEFT(code, 1) AS first_letter_code,
-        COUNT(DISTINCT patient_id) AS count_un_patient,
-        COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
-    FROM analytics.rds_smd_patient_treatments_2026
+          '2026' AS year,
+          LEFT(service_number, 1) AS first_letter_code,
+          COUNT(DISTINCT patient_id) AS count_un_patient,
+          COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
+     FROM analytics.rds_smd_patient_treatments_2026
     WHERE packet_number = '9'
-    GROUP BY LEFT(code, 1)
+      AND is_correct
+    GROUP BY LEFT(service_number, 1)
 )
 SELECT * FROM t_25
 UNION ALL
