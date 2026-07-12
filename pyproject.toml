@@ -16,6 +16,7 @@ dependencies = [
     "pyarrow[dataset,s3] (>=25.0.0,<26.0.0)",
     "sqlalchemy (>=2.0.51,<3.0.0)",
     "psycopg2-binary (>=2.9.12,<3.0.0)",
+    "dash-bootstrap-components (>=2.0.4,<3.0.0)",
 ]
 
 

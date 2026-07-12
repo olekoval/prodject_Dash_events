@@ -1,71 +1,113 @@
 import dash
-from dash import dcc, html, Input, Output, callback
-from dotenv import load_dotenv
+from dash import Dash, html, dcc, callback, Input, Output
+import dash_bootstrap_components as dbc
 import polars as pl
-import os
-import dash_ag_grid as dag
-
-# Реєстрація головної сторінки
-dash.register_page(__name__, path='/')
-
-load_dotenv()
-
-ACCESS_KEY_ID = os.getenv("CF_ACCESS_KEY_ID", "").strip()
-SECRET_ACCESS_KEY = os.getenv("CF_SECRET_ACCESS_KEY", "").strip()
-BUCKET_NAME = os.getenv("CF_BUCKET_NAME", "").strip()
-ENDPOINT_URL = os.getenv("CF_ENDPOINT_URL", "").strip()
+from pathlib import Path
 
 
-def get_storage_options():
-    return {
-        "aws_access_key_id": ACCESS_KEY_ID,
-        "aws_secret_access_key": SECRET_ACCESS_KEY,
-        "aws_endpoint_url": ENDPOINT_URL,
-        "aws_region": "auto",
-        # для деяких S3-сумісних сховищ (у т.ч. R2) потрібен virtual-hosted-style off
-        "aws_virtual_hosted_style_request": "false",
-    }
+dash.register_page(__name__, 
+                   path='/',
+                   title='Головна',
+                   name='Головна')
 
 
-def get_data():
-    path = f"s3://{BUCKET_NAME}/treatments/year=2025/service=C/**/*.parquet"
-    # path = f"s3://{BUCKET_NAME}/treatments/**/*.parquet"
-
-    lf = pl.scan_parquet(
-        path,
-        hive_partitioning=True,
-        storage_options=get_storage_options(),
-    )
-
-    df = (
-        lf.group_by(["year", "service"])
-        .agg([
-            pl.col("patient_id").n_unique().alias("un_patient_id"),
-            pl.col("count_service").sum().alias("count_service"),
-        ])
-        .collect()
-    )
-    return df.to_pandas()
+BASE_PATH = Path(__file__).resolve().parents[1]
+file_name = BASE_PATH / "data" / "gr_services_first_letter_25_26.parquet"
+df_service = pl.read_parquet(file_name)
 
 
-def layout():
-    return html.Div([
-        html.H2("Ласкаво просимо до аналітичного центру!"),
-        html.P("Оберіть потрібний звіт із списку нижче:"),
-        dcc.Loading(html.Div(id="grid-container"))
-    ])
+# 1. Створюємо картки
+card_C = dbc.Card(dbc.CardBody(
+    [
+        html.H4("Консультування та лікування", className="card-title"),
+        html.P(
+            "Кількість унікальних пацієнтів які отримували "
+            "послугу в розрізі року"
+        ),
+        html.H4([
+            "2025: ", 
+            html.Span(id="un-patients-c-25", className="fw-bold")
+        ], className="text-primary my-2"),
+        html.H4([
+            "2026: ", 
+            html.Span(id="un-patients-c-26", className="fw-bold")
+        ], className="text-primary my-2"),
+    ]
+))
+
+card_L = dbc.Card(dbc.CardBody("Вміст картки L"))
+card_I = dbc.Card(dbc.CardBody("Вміст картки I"))
+card_P = dbc.Card(dbc.CardBody("Вміст картки P"))
+card_E = dbc.Card(dbc.CardBody("Вміст картки e"))
+
+cards = dbc.Row(
+    [
+        dbc.Col(card_C),
+        dbc.Col(card_L),
+        dbc.Col(card_I),
+        dbc.Col(card_P),
+        dbc.Col(card_E),
+    ], 
+    className="row-cols-1 row-cols-md-5 g-3 mb-3" 
+)
+
+# 3. Головний макет сторінки
+layout = html.Div([
+    dbc.Container([
+        # Перший ряд з 5 картками
+        cards,
+        
+        # Другий ряд
+        dbc.Row(
+            [
+                dbc.Col(dbc.Card(dbc.CardBody("Графік 1")), width=6),
+                dbc.Col(dbc.Card(dbc.CardBody("Графік 2")), width=6),
+            ],
+            className="mb-3"
+        ),
+             
+        # Третій ряд
+        dbc.Row(
+            [
+                dbc.Col(dbc.Card(dbc.CardBody("Графік 3")), width=6), 
+                dbc.Col(dbc.Card(dbc.CardBody("Графік 4")), width=6),
+            ]
+        )
+    ], fluid=True) # Розтягує контейнер на всю ширину екрану
+])
 
 
 @callback(
-    Output("grid-container", "children"),
-    Input("grid-container", "id")
+    Output("un-patients-c-25", "children"),
+    Output("un-patients-c-26", "children"),
+    
+    Input("un-patients-c-25", "id")
 )
-def load_grid(_):
-    df = get_data()
-    columnDefs = [{'field': i} for i in df.columns]
-    grid = dag.AgGrid(
-        id="get-started-example",
-        rowData=df.to_dict("records"),
-        columnDefs=columnDefs,
-    )
-    return grid
+def load_all_cards_data(init_id):
+    c_25 = (df_service
+            .filter((pl.col('year') == '2025') & (pl.col('first_letter_code') == 'C'))
+            .select('count_un_patient')
+            .item())
+    c_26 = (df_service
+            .filter((pl.col('year') == '2026') & (pl.col('first_letter_code') == 'C'))
+            .select('count_un_patient')
+            .item())
+    
+    val_c_25 = f"{c_25:,}".replace(",", " ")
+    val_c_26 = f"{c_26:,}".replace(",", " ")
+    
+    return val_c_25, val_c_26
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -51,9 +51,15 @@ try:
         print("✅ З'єднання з базою даних успішно встановлено!")
         print("Завантаження даних...")
 
-        file_name = "../data/gr_services_first_letter_25_26.parquet"
-        Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-
+        # Абсолютний шлях до папки, де лежить цей скрипт (scripts/)
+        script_dir = Path(__file__).resolve().parent
+        
+        # Абсолютний шлях до папки data 
+        file_name = script_dir.parent / "data" / "gr_services_first_letter_25_26.parquet"
+        
+        # Створення папки data, якщо її немає
+        file_name.parent.mkdir(parents=True, exist_ok=True)
+        
         df = pl.read_database(query=query, connection=connection)
         df.write_parquet(file_name)
 
