@@ -17,41 +17,35 @@ df_service = pl.read_parquet(file_name)
 
 
 def make_card(title, span_id_25, span_id_26):
-    """Допоміжна функція для створення картки з однаковою структурою,
-    щоб блок з цифрами завжди притискався до низу картки (mt-auto).
-    Висота самої комірки задається CSS Grid у контейнері 'cards' (нижче),
-    а картка через style={'height': '100%'} + flex-column розтягується
-    на всю висоту цієї комірки і притискає числа донизу."""
     return dbc.Card(
         dbc.CardBody(
             [
                 html.Div([
                     html.H4(title, className="card-title"),
-                    html.P(
-                        "Кількість унікальних пацієнтів які отримували "
-                        "послугу в розрізі року"
-                    ),
+                    html.P("Кількість унікальних пацієнтів", className="card-text",),
                 ]),
                 html.Div([
-                    html.H5([
-                        "2025: ",
-                        html.Span(id=span_id_25, className="fw-bold",
-                                  style={"whiteSpace": "pre", "fontFamily": "'Courier New', Courier, monospace"})
-                    ], className="text-primary my-2"),
-                    html.H5([
-                        "2026: ",
-                        html.Span(id=span_id_26, className="fw-bold",
-                                 style={"whiteSpace": "pre", "fontFamily": "'Courier New', Courier, monospace"})
-                    ], className="text-primary my-2"),
-                ], className="mt-auto"),
-            ],
-            className="d-flex flex-column",
-            style={"height": "100%"}
-        ),
-        style={"height": "100%"}
-    )
-
-
+                    html.P(
+                        [
+                        "2025: ", 
+                        html.Span(id=span_id_25, 
+                                  className="fw-bold font-monospace fs-4", # зробити текст жирним
+                                  style={"whiteSpace": "pre"} # збереження всіх пробілів
+                                 )
+                        ], className="card-text text-primary my-2"),
+                     html.P(
+                        [
+                        "2026: ", 
+                        html.Span(id=span_id_26, 
+                                  className="fw-bold font-monospace fs-4", # зробити текст жирним
+                                  style={"whiteSpace": "pre"} # збереження всіх пробілів
+                                 )
+                        ], className="card-text text-primary my-2"),
+                ]),
+            ], # ---- кінець списку CardBody
+       ) # ---- закриваємо CardBody
+    ) # ---- закриваємо Card
+        
 # 1. -------------- Створюємо картки ------------------------
 card_C = make_card("Консультування та лікування", "un-patients-c-25", "un-patients-c-26")
 card_L = make_card("Лабораторна діагностика", "un-patients-l-25", "un-patients-l-26")
@@ -59,18 +53,14 @@ card_I = make_card("Інструментальна діагностика", "un-
 card_P = make_card("Процедури", "un-patients-p-25", "un-patients-p-26")
 card_E = make_card("Ургентні стани", "un-patients-e-25", "un-patients-e-26")
 
-# ------------ Розташовуєм картки в одному рядку через CSS Grid ------------------
-# CSS Grid гарантовано розтягує всі комірки одного рядка на однакову висоту
-# (align-items: stretch — поведінка Grid за замовчуванням), на відміну від
-# dbc.Row/dbc.Col, де стретчинг може зламатись через сторонні CSS-стилі теми.
-cards = html.Div(
-    [card_C, card_L, card_I, card_P, card_E],
-    className="mb-3",
-    style={
-        "display": "grid",
-        "gridTemplateColumns": "repeat(5, minmax(0, 1fr))",
-        "gap": "1rem",
-    }
+cards = dbc.Row(
+    [
+        dbc.Col(card_C), 
+        dbc.Col(card_L),
+        dbc.Col(card_I),
+        dbc.Col(card_P),
+        dbc.Col(card_E),
+    ]
 )
 
 # 3. Головний макет сторінки
