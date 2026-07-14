@@ -22,8 +22,8 @@ dbc.Row(
                         """),
             dash.page_container,
          ], width=12, md=10)
-    ]),
-fluid=True)
+    ])
+)
 
 if __name__ == "__main__":
     app.run(debug=True, port=8050)
