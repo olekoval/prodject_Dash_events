@@ -9,7 +9,6 @@ db_url = os.getenv("DB_URL")
 if not db_url:
     raise ValueError("DB_URL не задано в .env")
 
-# Тексти запитів залишаємо як чисті рядки (без обгортки в text())
 query_service = """
 WITH t_25 AS (
     SELECT 
@@ -66,6 +65,46 @@ UNION ALL
 SELECT * FROM s_26
 """
 
+query_Q = """
+WITH q_25 AS (
+SELECT '2025' AS year,
+       LEFT(service_number, 1) AS first_letter_code,
+       CASE 
+            WHEN report_month IN (1, 2, 3) THEN 'Q1'
+            WHEN report_month IN (4, 5, 6) THEN 'Q2'
+            WHEN report_month IN (7, 8, 9) THEN 'Q3'
+            ELSE 'Q4'
+        END AS quarter,
+       COUNT(DISTINCT patient_id) AS count_un_patient,
+       COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
+  FROM analytics.rds_smd_patient_treatments_2025
+ WHERE packet_number = '9'
+   AND is_correct
+   AND comment_text = 'Пацієнт включений до звіту'
+ GROUP BY quarter, LEFT(service_number, 1)  
+),
+q_26 AS (
+SELECT '2026' AS year,
+       LEFT(service_number, 1) AS first_letter_code,
+       CASE 
+            WHEN report_month IN (1, 2, 3) THEN 'Q1'
+            WHEN report_month IN (4, 5, 6) THEN 'Q2'
+            WHEN report_month IN (7, 8, 9) THEN 'Q3'
+            ELSE 'Q4'
+        END AS quarter,
+       COUNT(DISTINCT patient_id) AS count_un_patient,
+       COALESCE(SUM((details ->> 'К-сть послуг')::integer), 0) AS count_posluha
+  FROM analytics.rds_smd_patient_treatments_2026
+ WHERE packet_number = '9'
+   AND is_correct
+   AND comment_text = 'Пацієнт включений до звіту'
+ GROUP BY quarter, LEFT(service_number, 1) 
+ )
+
+SELECT * FROM q_25
+UNION ALL
+SELECT * FROM q_26
+"""
 # Визначення шляхів до папок
 script_dir = Path(__file__).resolve().parent
 data_dir = script_dir.parent / "data"
@@ -78,12 +117,17 @@ tasks = {
     "all": {
         "query": query_all,
         "file": data_dir / "gr_services_all_25_26.parquet"
-    }
+    },
+    "quarter": {
+        "query": query_Q,
+        "file": data_dir / "gr_services_Q_25_26.parquet"
+     }
 }
 
 RUN_TASKS = [
-    "service", 
-    "all"
+ #   "service", 
+ #   "all",
+    "quarter"
 ] 
 
 print("🚀 --- Запуск процесу зчитування даних через Polars ADBC...")

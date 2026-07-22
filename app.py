@@ -6,24 +6,28 @@ import dash_bootstrap_components as dbc
 app = Dash(__name__, use_pages=True,
            external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-app.layout = dbc.Container(
-dbc.Row(
-    [
-    dbc.Col(html.Div(
-        [dcc.Link(f"{page['name']}", href=page["relative_path"]) 
-         for page in dash.page_registry.values()]
-        ),
-            width=12, md=2),
-    dbc.Col(
-        [
-            html.H2("""ПМГ: Профілактика, 
-                        діагностика, спостереження та лікування в 
-                        амбулаторних умовах
-                        """),
-            dash.page_container,
-         ], width=12, md=10)
-    ])
-)
+app.layout = html.Div([
+    dbc.NavbarSimple(
+        children=[
+                    dbc.NavItem(dbc.NavLink(f"{page['name']}", href=page["relative_path"]))
+                    for page in dash.page_registry.values()
+                ],
+        brand="Аналітика ПМГ",  # Текст/логотип зліва
+        brand_href="/",         # Посилання при кліку на логотип
+        color="primary",        # Колір панелі (синій за замовчуванням у Bootstrap)
+        dark=True,              # Білий текст для темного фону
+        className="mb-4",       # Відступ знизу від панелі
+        fluid=True
+            ),
+
+    dbc.Container([
+    html.H1("""ПМГ: Профілактика, 
+                    діагностика, спостереження та лікування в 
+                    амбулаторних умовах
+                    """, className="text-center my-4"),    
+    dash.page_container,
+    ], fluid=True)
+])
 
 if __name__ == "__main__":
     app.run(debug=True, port=8050)
