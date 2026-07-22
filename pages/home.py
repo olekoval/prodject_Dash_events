@@ -1,5 +1,5 @@
 import dash
-from dash import Dash, html, dcc, callback, Input, Output
+from dash import Dash, html, dcc, callback, Input, Output, dash_table
 import dash_bootstrap_components as dbc
 import polars as pl
 from pathlib import Path
@@ -24,6 +24,13 @@ CODE_NAMES = {
     'E': 'Ургентні стани'
 }
 
+CODE_Q = {
+    'Q1': 'Квартал 1',
+    'Q2': 'Квартал 2',
+    'Q3': 'Квартал 3',
+    'Q4': 'Квартал 4',
+}
+    
 def make_card(title, span_id_25, span_id_26):
     return dbc.Card([
         dbc.CardHeader("Кількість унікальних пацієнтів"),
@@ -72,8 +79,16 @@ propetrs_cards = [
     ("Загалом по пакету", "un-patients-all-25", "un-patients-all-26")
 ]
 
+# --- Дані для вставку в таблицю -----------
+df_q_base = pl.read_parquet(FILE_Q).with_columns(
+    pl.col("first_letter_code")
+    .replace_strict(CODE_NAMES, default=None)
+    .alias("name_service"),
+    pl.col("year").cast(pl.String) # переконуємось, що рік — це рядок для безпечного pivot
+)
 # --- Головний макет сторінки home.html -------------------------------
 layout =  dbc.Container([
+        html.H3(["Дані по роках"], className="mt-4 mb-4 text-center"),
         html.Div([make_card(*card_data) for card_data in propetrs_cards], # Картки
                 style={
                     "display": "flex",
@@ -82,11 +97,11 @@ layout =  dbc.Container([
                     "gap": "15px",
                 }
                 ),
-     
+        html.H3(["Дані поквартально"], className="mt-4 text-center"),
         dbc.Row(
             [
                 dbc.Col([
-                dbc.Label("Вибіріть квартал"),
+                dbc.Label("Вибіріть квартал для відображеня на гафіку та в таблиці"),
                 dbc.RadioItems(
                     options=[
                         {"label": "Кв1", "value": "Q1"},
@@ -98,10 +113,24 @@ layout =  dbc.Container([
                     id="radio-input",
                     switch=True,
                   )
-                ], xs=12, sm=12, md=4, lg=2),
+                ], xs=12, sm=12, md=12, lg=2),
+                
                 dbc.Col([
                     dcc.Graph(id="bar-chart-patients")
-                    ], xs=12, sm=12, md=8, lg=5),
+                    ], xs=12, sm=12, md=12, lg=5),
+
+                dbc.Col([
+                    dbc.Label(id = "label_table"),
+                    dash_table.DataTable(id = "my-dash-table",
+                    style_cell_conditional=[
+                        {
+                        'if': {'column_id': c},
+                        'textAlign': 'left'
+                    } for c in ['Сервіси']
+                    ], style_as_list_view=True,                      
+                    )
+                ], xs=12, sm=12, md=12, lg=5),
+                
             ], className="mt-4"
         ),]
             , fluid=True )
@@ -157,7 +186,7 @@ def load_all_cards_data(init_id):
     Input("radio-input", "value")
 )
 def update_output(selected_quarter):
-    df_quarter = pl.read_parquet(FILE_Q)
+    df_quarter = df_q_base 
     df_q = df_quarter.filter(pl.col("quarter") == selected_quarter)
     
     letter_codes = list(CODE_NAMES.keys())
@@ -187,7 +216,7 @@ def update_output(selected_quarter):
     
     fig.update_layout(
         barmode='group',
-        title=f"Кількість унікальних пацієнтів за {selected_quarter}",
+        title=f"Кількість унікальних пацієнтів за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
         xaxis_title="Сервіси",
         yaxis_title="Кількість пацієнтів",
         template="plotly_white",
@@ -197,3 +226,70 @@ def update_output(selected_quarter):
 
     return fig
                
+@callback(
+    Output("label_table", "children"), 
+    Output("my-dash-table", "data"),     
+    Output("my-dash-table", "columns"),  
+    Input("radio-input", "value")
+)
+def service_q(selected_quarter):
+    
+    # 1. Робимо pivot
+    df_pivoted = (
+        df_q_base
+        .filter(pl.col("quarter") == selected_quarter)
+        .select(["first_letter_code", "name_service", "year", "count_un_patient"])
+        .pivot(
+            values="count_un_patient",
+            index=["first_letter_code", "name_service"],
+            on="year"
+        )
+    )
+
+    # 2. Гарантуємо, що колонки "2025" та "2026" існують (якщо якоїсь немає — створюємо з null)
+    existing_cols = df_pivoted.columns
+    
+    required_cols = []
+    for yr in ["2025", "2026"]:
+        if yr in existing_cols:
+            required_cols.append(pl.col(yr).fill_null(0))
+        else:
+            required_cols.append(pl.lit(0).alias(yr))
+
+    # 3. Продовжуємо обробку
+    df_filter_q = (
+        df_pivoted
+        .with_columns(required_cols)
+        .select(["first_letter_code", "name_service", "2025", "2026"])
+        .sort("first_letter_code")
+        .select(["name_service", "2025", "2026"])
+        .rename({"name_service": "Сервіси"})
+        .with_columns(
+            (pl.col("2026") - pl.col("2025")).alias("diff")
+        )
+        .with_columns(
+            pl.format("{}{}", 
+                      pl.when(pl.col("diff") > 0).then(pl.lit("+")).otherwise(pl.lit("")),
+                      pl.col("diff")
+            ).alias("Δ")
+        )
+        .with_columns(
+            pl.when(pl.col("2025") != 0)
+            .then(
+                pl.format("{}{}%", 
+                          pl.when(pl.col("diff") > 0).then(pl.lit("+")).otherwise(pl.lit("")),
+                          ((pl.col("2026") - pl.col("2025")) / pl.col("2025") * 100).round(1)
+                )
+            )
+            .otherwise(pl.lit("N/A"))
+            .alias("Δ %")
+        )
+        .drop("diff")
+    )  
+
+      
+    return (
+           f"Дані за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
+           df_filter_q.to_dicts(), 
+           [{"name": i, "id": i} for i in df_filter_q.columns]
+    )
