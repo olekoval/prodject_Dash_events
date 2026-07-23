@@ -2,6 +2,7 @@ import os
 import polars as pl
 from pathlib import Path
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -130,15 +131,17 @@ RUN_TASKS = [
     "quarter"
 ] 
 
-print("🚀 --- Запуск процесу зчитування даних через Polars ADBC...")
+print("🚀 ... Запуск процесу зчитування даних через Polars ADBC...")
 
 for task_name in RUN_TASKS:
     task = tasks[task_name]
     query = task["query"]
     file_name = task["file"]
     
+    start_time = time.perf_counter()
+    
     try:
-        print(f"📡 ... Виконання запиту '{task_name}' напряму в Arrow-потік...")
+        print(f"📡 ... Виконання запиту '{task_name}'")
         
         # Використовуємо рядок підключення та швидкий adbc двигун
         df = pl.read_database_uri(
@@ -147,9 +150,15 @@ for task_name in RUN_TASKS:
             engine="adbc"
         )
         
+        elapsed = time.perf_counter() - start_time
+        print(f"⏱️ ... {task_name} виконано за {elapsed:.2f} секунд")
+        
         # Збереження результату
         df.write_parquet(file_name)
         print(f"✅ ... Дані збережено у {file_name.name} ({df.height} рядків)")
+        
+        file_size = file_name.stat().st_size / (1024 * 1024)  # у МБ
+        print(f"📦 ... Розмір файлу: {file_size:.2f} МБ")
         
     except Exception as e:
         print(f"❌ ... Помилка у запиті '{task_name}': {e}")
