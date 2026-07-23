@@ -1,0 +1,44 @@
+/* ============================================================
+   ПМГ Дашборд — базова тема
+   Крок 2: тільки кольори + шрифти (токени), без стилів компонентів
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    /* --- Кольори (токени) --- */
+    --color-bg: #F7F8FA;
+    --color-surface: #FFFFFF;
+    --color-accent: #0F6E6C;          /* основний акцент (2025) */
+    --color-accent-light: #3FA9A5;    /* другорядний акцент (2026) */
+    --color-positive: #2E7D4F;        /* зростання (Δ+) */
+    --color-negative: #C2543F;        /* спад (Δ-) */
+    --color-text: #1F2937;
+    --color-text-muted: #6B7280;
+
+    /* --- Шрифти --- */
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+/* --- Базові налаштування сторінки --- */
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+}
+
+/* --- Перевизначення ключових Bootstrap-змінних,
+       щоб компоненти dbc одразу підхопили нову тему --- */
+:root {
+    --bs-primary: var(--color-accent);
+    --bs-primary-rgb: 15, 110, 108;
+    --bs-body-bg: var(--color-bg);
+    --bs-body-color: var(--color-text);
+    --bs-body-font-family: var(--font-body);
+}
+
+/* --- Клас, яким у Dash вже позначені цифри в картках (font-monospace) --- */
+.font-monospace {
+    font-family: var(--font-mono) !important;
+}

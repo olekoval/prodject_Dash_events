@@ -125,8 +125,8 @@ tasks = {
 }
 
 RUN_TASKS = [
- #   "service", 
- #   "all",
+    "service", 
+    "all",
     "quarter"
 ] 
 

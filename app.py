@@ -12,7 +12,10 @@ app.layout = html.Div([
                     dbc.NavItem(dbc.NavLink(f"{page['name']}", href=page["relative_path"]))
                     for page in dash.page_registry.values()
                 ],
-        brand="Аналітика ПМГ",  # Текст/логотип зліва
+        brand="""ПМГ: Профілактика, 
+                    діагностика, спостереження та лікування в 
+                    амбулаторних умовах
+                    """,  # Текст/логотип зліва
         brand_href="/",         # Посилання при кліку на логотип
         color="primary",        # Колір панелі (синій за замовчуванням у Bootstrap)
         dark=True,              # Білий текст для темного фону
@@ -21,10 +24,10 @@ app.layout = html.Div([
             ),
 
     dbc.Container([
-    html.H1("""ПМГ: Профілактика, 
-                    діагностика, спостереження та лікування в 
-                    амбулаторних умовах
-                    """, className="text-center my-4"),    
+##    html.H2("""ПМГ: Профілактика, 
+##                    діагностика, спостереження та лікування в 
+##                    амбулаторних умовах
+##                    """, className="text-center my-4"),    
     dash.page_container,
     ], fluid=True)
 ])
