@@ -33,43 +33,46 @@ CODE_Q = {
     
 def make_card(title, span_id_25, span_id_26):
     return dbc.Card([
-        dbc.CardHeader("Кількість унікальних пацієнтів"),
+        dbc.CardHeader("Кількість унікальних пацієнтів",
+                       style={
+                           "backgroundColor": "var(--color-accent)",
+                           "color": "#FFFFFF",
+                       }),
         dbc.CardBody(
             [
-                html.Div([
-                    html.H5(title, className="card-title text-center"),
-                 #   html.P("Кількість унікальних пацієнтів", className="card-text",),
+                html.H5(title, className="card-title text-center mb-3",
+                        style={
+                            "minHeight": "2.6em",   # місце під 2 рядки заголовка завжди
+                            "display": "flex",
+                            "alignItems": "center",  # 1-рядкові заголовки центруються по вертикалі
+                            "justifyContent": "center",
+                        }),
+                        
+                dbc.Row([
+                    # --- колонка 2025 ---
+                    dbc.Col([
+                        html.P("2025", className="text-center mb-1 fw-medium",
+                               style={"color": "var(--color-text-muted)"}),
+                        html.Div(id=span_id_25,
+                                 className="fw-bold font-monospace fs-5 text-center",
+                                 style={"whiteSpace": "normal"}),
+                    ], width=6),
+                    # --- колонка 2026 (рівнозначна за розміром і вагою) ---
+                    dbc.Col([
+                        html.P("2026", className="text-center mb-1 fw-medium",
+                               style={"color": "var(--color-accent)"}),
+                        html.Div(id=span_id_26,
+                                 className="fw-bold font-monospace fs-5 text-center",
+                                 style={"whiteSpace": "normal"}),
+                    ], width=6),
                 ]),
-                html.Div([
-                    html.P(
-                        [
-                        "2025: ", 
-                        html.Span(id=span_id_25, 
-                                  className="fw-bold font-monospace fs-4", # зробити текст жирним
-                                  style={"whiteSpace": "pre"} # збереження всіх пробілів
-                                 )
-                        ], className="text-primary my-0"),
-                     html.P(
-                        [
-                        "2026: ", 
-                        html.Span(id=span_id_26, 
-                                  className="fw-bold font-monospace fs-4", # зробити текст жирним
-                                  style={"whiteSpace": "pre"} # збереження всіх пробілів
-                                 )
-                        ], className="text-primary my-0"),
-                ]),
-            ], # ---- кінець списку CardBody
-            className="d-flex flex-column justify-content-between"
-            # style={
-            #         "display": "flex",
-            #         "flexDirection": "column",
-            #         "justify-content": "space-between",
-            #     }
-       ) # ---- тут закривається дужка CardBody (перший позиційний аргумент для Card)
-    ], style={"width": "16rem"},) # ---- закриваємо Card
+            ],
+       )
+    ], style={"width": "19rem"},) # ---- закриваємо Card
 
 
-# -------------- Створюємо картки ------------------------
+
+# -------------- Створюємо метадані картки ------------------------
 propetrs_cards = [
     ("Консультування та лікування", "un-patients-c-25", "un-patients-c-26"),
     ("Лабораторна діагностика", "un-patients-l-25", "un-patients-l-26"),
@@ -88,54 +91,101 @@ df_q_base = pl.read_parquet(FILE_Q).with_columns(
 )
 # --- Головний макет сторінки home.html -------------------------------
 layout =  dbc.Container([
-        html.H3(["Дані по роках"], className="mt-4 mb-4 text-center"),
-        html.Div([make_card(*card_data) for card_data in propetrs_cards], # Картки
-                style={
-                    "display": "flex",
-                    "justify-content": "center",
-                    "flex-wrap": "wrap",
-                    "gap": "15px",
-                }
-                ),
-        html.H3(["Дані поквартально"], className="mt-4 text-center"),
-        dbc.Row(
-            [
-                dbc.Col([
-                dbc.Label("Вибіріть квартал для відображеня на гафіку та в таблиці"),
-                dbc.RadioItems(
-                    options=[
-                        {"label": "Кв1", "value": "Q1"},
-                        {"label": "Кв2", "value": "Q2"},
-                        {"label": "Кв3", "value": "Q3"},
-                        {"label": "Кв4", "value": "Q4"},
-                    ],
-                    value="Q1",
-                    id="radio-input",
-                    switch=True,
-                  )
-                ], xs=12, sm=12, md=12, lg=2),
-                
-                dbc.Col([
-                    dcc.Graph(id="bar-chart-patients")
-                    ], xs=12, sm=12, md=12, lg=5),
-
-                dbc.Col([
-                    dbc.Label(id = "label_table"),
-                    dash_table.DataTable(id = "my-dash-table",
-                    style_cell_conditional=[
-                        {
-                        'if': {'column_id': c},
-                        'textAlign': 'left'
-                    } for c in ['Сервіси']
-                    ], style_as_list_view=True,                      
+    
+        html.H3(["Річна динаміка"], className="mt-4 mb-4 text-center"),
+        html.Div([
+            dbc.Row(
+                [
+                    dbc.Col(
+                        make_card(*card_data),
+                        xs=12, sm=6, lg=4,  # 1 на мобільному, 2 на планшеті, 3 на великому екрані
+                        className="d-flex justify-content-center mb-3",
                     )
-                ], xs=12, sm=12, md=12, lg=5),
-                
-            ], className="mt-4"
-        ),]
-            , fluid=True )
+                    for card_data in propetrs_cards
+                ],
+                className="g-3 justify-content-center",  # gap між картками + центрування
+            ),
+        ], style={"maxWidth": "1100px", "margin": "0 auto"}),  # обмежуємо ширину блоку карток
+    
+html.H3(["Квартальна динаміка"], className="mt-4 mb-4 text-center"),
+        html.Div([
+            # --- Картка з фільтром (горизонтально, на всю ширину) ---
+            dbc.Card([
+                dbc.CardHeader("Оберіть квартал для деталізації",
+                               style={"backgroundColor": "var(--color-accent)", "color": "#FFFFFF"}),
+                dbc.CardBody([
+                    # dbc.Label("Оберіть квартал для деталізації",
+                    #            className="mb-2"),
+                                dbc.RadioItems(
+                                    id="radio-input",
+                                    className="quarter-filter-group",
+                                    inputClassName="btn-check",
+                                    labelClassName="quarter-filter-btn",
+                                    labelCheckedClassName="active",
+                                    options=[
+                                        {"label": "Кв1", "value": "Q1"},
+                                        {"label": "Кв2", "value": "Q2"},
+                                        {"label": "Кв3", "value": "Q3"},
+                                        {"label": "Кв4", "value": "Q4"},
+                                    ],
+                                    value="Q1",
+                    ),
+                ]),
+            ], className="mb-3"),
 
-
+            # --- Картка з графіком і таблицею поруч ---
+            dbc.Card([
+                dbc.CardHeader("Результати",
+                               style={"backgroundColor": "var(--color-accent)", "color": "#FFFFFF"}),
+                dbc.CardBody(
+                    dbc.Row([
+                        dbc.Col([
+                            dcc.Graph(id="bar-chart-patients")
+                        ], xs=12, lg=5),
+                        dbc.Col([
+                            dbc.Label(id="label_table"),
+                            dash_table.DataTable(
+                                id="my-dash-table",
+                                # css=[{'selector': 'table',
+                                #       'rule': 'table-layout: fixed'}],
+                                style_cell_conditional=[
+                                    {'if': {'column_id': 'Сервіси'},
+                                     'textAlign': 'left',
+                                     'whiteSpace': 'normal',   # дозволяє перенос рядка
+                                     'height': 'auto'},
+                                ],
+                                style_as_list_view=True,
+                                style_header={
+                                    'backgroundColor': 'var(--color-accent)',
+                                    'color': '#FFFFFF',
+                                    'fontWeight': '600',
+                                },
+                                style_cell={
+                                    'fontFamily': 'var(--font-body)',
+                                    'padding': '8px 12px',
+                                },
+                                style_data_conditional=[
+                                    # zebra-striping
+                                    {'if': {'row_index': 'odd'},
+                                     'backgroundColor': 'var(--color-bg)'},
+                                    # Δ і Δ% зеленим при зростанні
+                                    {'if': {'column_id': 'Δ', 'filter_query': '{Δ} contains "+"'},
+                                     'color': 'var(--color-positive)', 'fontWeight': '600'},
+                                    {'if': {'column_id': 'Δ %', 'filter_query': '{Δ %} contains "+"'},
+                                     'color': 'var(--color-positive)', 'fontWeight': '600'},
+                                    # Δ і Δ% теракотовим при спаді
+                                    {'if': {'column_id': 'Δ', 'filter_query': '{Δ} contains "-"'},
+                                     'color': 'var(--color-negative)', 'fontWeight': '600'},
+                                    {'if': {'column_id': 'Δ %', 'filter_query': '{Δ %} contains "-"'},
+                                     'color': 'var(--color-negative)', 'fontWeight': '600'},
+                                ],
+                            ),
+                        ], xs=12, lg=7),
+                    ]),
+                ),
+            ]),
+        ], style={"maxWidth": "1150px", "margin": "0 auto"}, className="mt-4"),
+], fluid=True )
 
 @callback(
     Output("un-patients-c-25", "children"),
@@ -177,7 +227,7 @@ def load_all_cards_data(init_id):
             # Беремо значення зі словника (0, якщо раптом комбінації немає в даних)
             val = data_dict.get((year, code), 0)
             # Форматуємо число із вирівнюванням та розділювачем тисяч
-            formatted_values.append(f"{val:>10,d}".replace(",", " "))
+            formatted_values.append(f"{val:,d}".replace(",", " "))
             
     return tuple(formatted_values)
 
@@ -210,18 +260,24 @@ def update_output(selected_quarter):
     x_labels_formatted = [label.replace(" ", "<br>", 1) if " " in label else label for label in x_labels]
     
     fig = go.Figure(data=[
-        go.Bar(name='2025 рік', x=x_labels_formatted, y=y_2025, marker_color='#0d6efd'),
-        go.Bar(name='2026 рік', x=x_labels_formatted, y=y_2026, marker_color='#0dcaf0')
+        go.Bar(name='2025 рік', x=x_labels_formatted, y=y_2025, marker_color='#0F6E6C'),   # --color-accent
+        go.Bar(name='2026 рік', x=x_labels_formatted, y=y_2026, marker_color='#F2994A')    # --color-accent-light
     ])
     
     fig.update_layout(
         barmode='group',
-        title=f"Кількість унікальних пацієнтів за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
+        title=dict(
+            text=f"Кількість унікальних пацієнтів за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
+            font=dict(size=14, color='#6B7280'),  # менш "кричущий" заголовок, --color-text-muted
+        ),
         xaxis_title="Сервіси",
         yaxis_title="Кількість пацієнтів",
+        font=dict(family="Inter, sans-serif", color='#1F2937'),  # той самий шрифт, що й на сторінці
         template="plotly_white",
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=True, gridcolor='#E5E7EB'),  # лише горизонтальні світло-сірі лінії
         margin=dict(l=20, r=20, t=50, b=50),
-        legend=dict(orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5)
+        legend=dict(orientation="v", yanchor="top", y=1, xanchor="center", x=0.75)
     )
 
     return fig
@@ -287,9 +343,17 @@ def service_q(selected_quarter):
         .drop("diff")
     )  
 
-      
+    # 4. Форматуємо числа з розділювачем тисяч (аналогічно до карток)
+    rows = df_filter_q.to_dicts()
+    for row in rows:
+        row["2025"] = f"{row['2025']:,}".replace(",", " ")
+        row["2026"] = f"{row['2026']:,}".replace(",", " ")
+        sign = "+" if row["Δ"].startswith("+") else ("-" if row["Δ"].startswith("-") else "")
+        digits = row["Δ"].lstrip("+-")
+        row["Δ"] = sign + f"{int(digits):,}".replace(",", " ")
+
     return (
            f"Дані за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
-           df_filter_q.to_dicts(), 
+           rows, 
            [{"name": i, "id": i} for i in df_filter_q.columns]
     )

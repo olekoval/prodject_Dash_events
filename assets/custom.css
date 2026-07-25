@@ -42,3 +42,32 @@ body {
 .font-monospace {
     font-family: var(--font-mono) !important;
 }
+
+/* --- Обгортка групи кнопок фільтра кварталів --- */
+.quarter-filter-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* --- Кнопки-сегменти фільтра кварталів --- */
+
+.quarter-filter-btn {
+    border: 1px solid var(--color-accent);
+    border-radius: 8px;         /* заокруглені кути замість гострих */
+    padding: 6px 18px;          /* повітря навколо тексту */
+    color: var(--color-accent);
+    background-color: var(--color-surface);
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.quarter-filter-btn:hover {
+    background-color: var(--color-bg);
+}
+
+.quarter-filter-btn.active {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #FFFFFF;
+}
