@@ -1,7 +1,7 @@
 import dash
 from dash import Dash, html, dcc, callback, Input, Output, dash_table
 import dash_bootstrap_components as dbc
-import polars as pl
+import pandas as pd
 from pathlib import Path
 import plotly.graph_objects as go
 
@@ -9,7 +9,8 @@ import plotly.graph_objects as go
 dash.register_page(__name__, 
                    path='/',
                    title='Головна',
-                   name='Головна')
+                   name='Головна',
+                   order=0)
 
 BASE_PATH = Path(__file__).resolve().parents[1]
 FILE_SERVICE = BASE_PATH / "data" / "gr_services_first_letter_25_26.parquet"
@@ -83,12 +84,10 @@ propetrs_cards = [
 ]
 
 # --- Дані для вставку в таблицю -----------
-df_q_base = pl.read_parquet(FILE_Q).with_columns(
-    pl.col("first_letter_code")
-    .replace_strict(CODE_NAMES, default=None)
-    .alias("name_service"),
-    pl.col("year").cast(pl.String) # переконуємось, що рік — це рядок для безпечного pivot
-)
+df_q_base = pd.read_parquet(FILE_Q)
+df_q_base["name_service"] = df_q_base["first_letter_code"].map(CODE_NAMES)
+df_q_base["year"] = df_q_base["year"].astype(str)  # переконуємось, що рік — це рядок для безпечного pivot
+
 # --- Головний макет сторінки home.html -------------------------------
 layout =  dbc.Container([
     
@@ -204,15 +203,15 @@ html.H3(["Квартальна динаміка"], className="mt-4 mb-4 text-cen
     Input("un-patients-c-25", "id")
 )
 def load_all_cards_data(init_id):
-    df_service = pl.read_parquet(FILE_SERVICE)
-    df_all = pl.read_parquet(FILE_ALL)
+    df_service = pd.read_parquet(FILE_SERVICE)
+    df_all = pd.read_parquet(FILE_ALL)
 
-    df_un_patient = pl.concat([df_service, df_all], how="vertical")
+    df_un_patient = pd.concat([df_service, df_all], axis=0, ignore_index=True)
     # 1. Перетворюємо датафрейм у словник для швидкого доступу за ключем (year, first_letter_code)
     # Це робиться за один прохід замість 10 окремих фільтрацій
     data_dict = {
         (row["year"], row["first_letter_code"]): row["count_un_patient"] # составний ключ наприклад ('2025', 'L')
-        for row in df_un_patient.iter_rows(named=True)
+        for _, row in df_un_patient.iterrows()
     }
     
     # Послідовність кодів, яка відповідає порядку Output у декораторі
@@ -237,13 +236,13 @@ def load_all_cards_data(init_id):
 )
 def update_output(selected_quarter):
     df_quarter = df_q_base 
-    df_q = df_quarter.filter(pl.col("quarter") == selected_quarter)
+    df_q = df_quarter[df_quarter["quarter"] == selected_quarter]
     
     letter_codes = list(CODE_NAMES.keys())
     
     # Фільтрація по роках з приведенням до стрічки
-    df_2025 = df_q.filter(pl.col("year").cast(pl.Utf8) == "2025")
-    df_2026 = df_q.filter(pl.col("year").cast(pl.Utf8) == "2026")
+    df_2025 = df_q[df_q["year"].astype(str) == "2025"]
+    df_2026 = df_q[df_q["year"].astype(str) == "2026"]
     
     # Словники для швидкого пошуку значень
     dict_2025 = dict(zip(df_2025["first_letter_code"], df_2025["count_un_patient"]))
@@ -292,59 +291,50 @@ def service_q(selected_quarter):
     
     # 1. Робимо pivot
     df_pivoted = (
-        df_q_base
-        .filter(pl.col("quarter") == selected_quarter)
-        .select(["first_letter_code", "name_service", "year", "count_un_patient"])
+        df_q_base[df_q_base["quarter"] == selected_quarter]
+        [["first_letter_code", "name_service", "year", "count_un_patient"]]
         .pivot(
-            values="count_un_patient",
             index=["first_letter_code", "name_service"],
-            on="year"
+            columns="year",
+            values="count_un_patient"
         )
+        .reset_index()
     )
+    df_pivoted.columns.name = None
 
     # 2. Гарантуємо, що колонки "2025" та "2026" існують (якщо якоїсь немає — створюємо з null)
-    existing_cols = df_pivoted.columns
-    
-    required_cols = []
+    existing_cols = df_pivoted.columns.tolist()
+
     for yr in ["2025", "2026"]:
         if yr in existing_cols:
-            required_cols.append(pl.col(yr).fill_null(0))
+            df_pivoted[yr] = df_pivoted[yr].fillna(0)
         else:
-            required_cols.append(pl.lit(0).alias(yr))
+            df_pivoted[yr] = 0
 
     # 3. Продовжуємо обробку
     df_filter_q = (
-        df_pivoted
-        .with_columns(required_cols)
-        .select(["first_letter_code", "name_service", "2025", "2026"])
-        .sort("first_letter_code")
-        .select(["name_service", "2025", "2026"])
-        .rename({"name_service": "Сервіси"})
-        .with_columns(
-            (pl.col("2026") - pl.col("2025")).alias("diff")
-        )
-        .with_columns(
-            pl.format("{}{}", 
-                      pl.when(pl.col("diff") > 0).then(pl.lit("+")).otherwise(pl.lit("")),
-                      pl.col("diff")
-            ).alias("Δ")
-        )
-        .with_columns(
-            pl.when(pl.col("2025") != 0)
-            .then(
-                pl.format("{}{}%", 
-                          pl.when(pl.col("diff") > 0).then(pl.lit("+")).otherwise(pl.lit("")),
-                          ((pl.col("2026") - pl.col("2025")) / pl.col("2025") * 100).round(1)
-                )
-            )
-            .otherwise(pl.lit("N/A"))
-            .alias("Δ %")
-        )
-        .drop("diff")
-    )  
+        df_pivoted[["first_letter_code", "name_service", "2025", "2026"]]
+        .sort_values("first_letter_code")
+        [["name_service", "2025", "2026"]]
+        .rename(columns={"name_service": "Сервіси"})
+    )
+    df_filter_q["2025"] = df_filter_q["2025"].astype(int)
+    df_filter_q["2026"] = df_filter_q["2026"].astype(int)
+    df_filter_q["diff"] = df_filter_q["2026"] - df_filter_q["2025"]
+    df_filter_q["Δ"] = df_filter_q["diff"].apply(
+        lambda d: f"{'+' if d > 0 else ''}{d}"
+    )
+    df_filter_q["Δ %"] = df_filter_q.apply(
+        lambda r: (
+            f"{'+' if r['diff'] > 0 else ''}{round((r['2026'] - r['2025']) / r['2025'] * 100, 1)}%"
+            if r["2025"] != 0 else "N/A"
+        ),
+        axis=1
+    )
+    df_filter_q = df_filter_q.drop(columns=["diff"])
 
     # 4. Форматуємо числа з розділювачем тисяч (аналогічно до карток)
-    rows = df_filter_q.to_dicts()
+    rows = df_filter_q.to_dict("records")
     for row in rows:
         row["2025"] = f"{row['2025']:,}".replace(",", " ")
         row["2026"] = f"{row['2026']:,}".replace(",", " ")
@@ -353,7 +343,7 @@ def service_q(selected_quarter):
         row["Δ"] = sign + f"{int(digits):,}".replace(",", " ")
 
     return (
-           f"Дані за {CODE_Q.get(selected_quarter, "помилковий номер квартала")}",
+           f"Дані за {CODE_Q.get(selected_quarter, "помилковий номер квартала")} (унікальні пацієнти)",
            rows, 
            [{"name": i, "id": i} for i in df_filter_q.columns]
     )

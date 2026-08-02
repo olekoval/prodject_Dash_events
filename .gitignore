@@ -22,3 +22,6 @@ Desktop.ini
 # IDEs
 .vscode/
 .idea/
+
+docs/
+temp.ipynb
