@@ -1,12 +1,15 @@
 [project]
 name = "prodject-dash-events"
 version = "0.1.0"
-description = ""
+description = "Dash application for events"
 authors = [
     {name = "Oleh",email = "314koval.ok@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
+classifiers = [
+    "Private :: Do Not Publish Rule"
+]
 dependencies = [
     "boto3 (>=1.43.40,<2.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
@@ -22,6 +25,8 @@ dependencies = [
     "pandas (>=3.0.5,<4.0.0)",
 ]
 
+[tool.poetry]
+package-mode = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
