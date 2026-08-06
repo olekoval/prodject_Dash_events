@@ -16,6 +16,7 @@ FILE_CLAS = BASE_PATH / "data" / "gr_class_month_25_26.parquet"
 
 def process_top_services(df: pd.DataFrame, 
                              year: str, 
+                             month_range: list,
                              threshold: float = 0.01) -> pd.DataFrame:
     """
     Фільтрує дані за роком та кодом 'C', обчислює топ-позиції (>= threshold)
@@ -26,6 +27,7 @@ def process_top_services(df: pd.DataFrame,
     df_grouped = (
         df[
             (df["year"] == year) &
+            (df["report_month"].between(month_range[0], month_range[1])) &
             (df["service_number"].str.upper().str.startswith("C"))
         ]
         .groupby(["service_number", "name_class"], as_index=False)
@@ -79,9 +81,37 @@ def truncate_labels(labels, max_len=16, show_tooltip=True):
 # -----------------------------------------------------------------
 layout = dbc.Container([
     html.H3("Класи сервіса Консультування та лікування"),
+   dbc.Card([
+    dbc.CardHeader([html.H5("Виберіть діапазон місяців")]),
+    dbc.CardBody([
+        dcc.RangeSlider(
+            min=1, 
+            max=12, 
+            step=1, 
+            marks={
+                1: 'Січ',
+                2: 'Лют',
+                3: 'Бер',
+                4: 'Квіт',
+                5: 'Трав',
+                6: 'Черв',
+                7: 'Лип',
+                8: 'Серп',
+                9: 'Вер',
+                10: 'Жовт',
+                11: 'Лист',
+                12: 'Груд'
+            }, 
+            value=[1, 3], 
+            allowCross=False, 
+            className='mb-4',
+            id='month-range'
+        )
+    ])
+], className='mb-4'),
     dbc.Card([
      #   dbc.CardHeader(""),
-        dbc.CardBody(
+        dbc.CardBody([          
             dbc.Row([
                 
                 dbc.Col([
@@ -95,34 +125,34 @@ layout = dbc.Container([
                 ], xs=12, lg=6),
                 
             ])
-        )
+        ])
     ])
 ])
 
 @callback(
     Output("bar-chart-h-25", "figure"),
     Output("bar-chart-h-26", "figure"),
-    Input("bar-chart-h-25", "id")
+    Input("month-range", "value")
 )
-def top_class(_):
+def top_class(month_range):
+    # Визначення кольорів стовпців
+    color_all = '#0F6E6C'
+    color_last = '#F2994A'
     df = pd.read_parquet(FILE_CLAS)
-    # --- Виклик функції для 2025 та 2026 років ---
-    top_2025 = process_top_services(df, year="2025")
+    # --- Виклик функції process_top_services для 2025 ---
+    top_2025 = process_top_services(df, year="2025", month_range=month_range)
     total_2025 = top_2025['count_pos'].sum()
     percents_25 = (top_2025['count_pos'] / total_2025 * 100).round(1).astype(str) + '%'
     percent_values_25 = (top_2025['count_pos'] / total_2025).round(2)  # зберігаємо числові значення
     # Обрізаємо довгі назви
     labels_25 = truncate_labels(top_2025['name_class'].tolist())
     # Визначаємо позицію тексту для кожного стовпчика
-    textposition_25 = ['inside' if val >= 0.1 else 'outside' for val in percent_values_25]
-    # Визначення кольорів стовпців
-    color_all = '#0F6E6C'
-    color_last = '#F2994A'
-    
+    textposition_25 = ['inside' if val >= 0.1 else 'outside' for val in percent_values_25]   
     n_25 = top_2025.shape[0]
     color_list_25 = [color_last] + [color_all] * (n_25 - 1)
-    
-    top_2026 = process_top_services(df, year="2026")
+
+    # --- Виклик функції process_top_services для 2026 ---
+    top_2026 = process_top_services(df, year="2026", month_range=month_range)
     total_2026 = top_2026['count_pos'].sum()
     percents_26 = (top_2026['count_pos'] / total_2026 * 100).round(1).astype(str) + '%'
     percent_values_26 = (top_2026['count_pos'] / total_2026).round(2)
@@ -153,6 +183,7 @@ def top_class(_):
 
      # Налаштування відступів та масштабування
     fig_25.update_layout(
+        title="2025 рік", title_x=0.5,
         margin=dict(l=150, r=30, t=30, b=50),
         xaxis=dict(
             autorange=True,
@@ -166,6 +197,7 @@ def top_class(_):
     )
     
     fig_26.update_layout(
+        title="2026 рік", title_x=0.5,
         margin=dict(l=150, r=30, t=30, b=50),
         xaxis=dict(
             autorange=True,
