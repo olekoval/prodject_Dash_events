@@ -110,6 +110,7 @@ SELECT * FROM q_25
 UNION ALL
 SELECT * FROM q_26
 """
+# для сторінки class_services
 query_class = """
 WITH class_name AS (
 	SELECT service_number, name AS name_class

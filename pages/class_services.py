@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, callback, Input, Output
+from dash import html, dcc, callback, Input, Output, dash_table
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 import pandas as pd
@@ -13,6 +13,7 @@ dash.register_page(__name__,
 
 BASE_PATH = Path(__file__).resolve().parents[1]
 FILE_CLAS = BASE_PATH / "data" / "gr_class_month_25_26.parquet"
+df = pd.read_parquet(FILE_CLAS)
 
 def process_top_services(df: pd.DataFrame, 
                              year: str, 
@@ -68,7 +69,7 @@ def truncate_labels(labels, max_len=16, show_tooltip=True):
     
     Args:
         labels: список рядків для обрізання
-        max_len: максимальна довжина рядка (за замовчуванням 18)
+        max_len: максимальна довжина рядка (за замовчуванням 16)
         show_tooltip: якщо True, додає повну назву в hovertext (за замовчуванням True)
     """
     truncated = []
@@ -78,6 +79,33 @@ def truncate_labels(labels, max_len=16, show_tooltip=True):
         else:
             truncated.append(label[:max_len] + '...')
     return truncated
+
+# -------------- Обробка даних до таблиці ---------------------------------
+def data_table(df: pd.DataFrame, month_range: list) -> pd.DataFrame:
+    df_filtered = df[
+        (df["report_month"].between(month_range[0], month_range[1])) &
+        (df["service_number"].str.upper().str.startswith("C"))
+    ]
+
+    df_pivot = (
+            df_filtered.groupby(['year', 'name_class'])
+            .agg(sum_count_posluha=('count_posluha', 'sum'))
+            .reset_index()
+            .pivot(index='name_class', columns='year', values='sum_count_posluha')
+            .fillna(0)
+            .reset_index()  
+        )
+        
+    # Заповнюємо можливі NaN (якщо в якомусь році не було послуги) на 0
+     # df_pivot = df_pivot.fillna(0)
+# Додати розрахунок змін у значеннях по роках 
+    # df_pivot = df_pivot.rename(columns={
+    #     'name_class': 'Назва класу',
+    #     '2025': '2025 рік',
+    #     '2026': '2026 рік'
+    # })
+
+    return df_pivot
 # -----------------------------------------------------------------
 layout = dbc.Container([
     html.H3("Класи сервіса Консультування та лікування"),
@@ -138,7 +166,7 @@ def top_class(month_range):
     # Визначення кольорів стовпців
     color_all = '#0F6E6C'
     color_last = '#F2994A'
-    df = pd.read_parquet(FILE_CLAS)
+
     # --- Виклик функції process_top_services для 2025 ---
     top_2025 = process_top_services(df, year="2025", month_range=month_range)
     total_2025 = top_2025['count_pos'].sum()
@@ -209,5 +237,9 @@ def top_class(month_range):
         ),
         bargap=0.1,
     )
+
+    # ----------- код для створення таблиці --------------------
+
+    
     
     return fig_25, fig_26
